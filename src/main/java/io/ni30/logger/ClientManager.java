@@ -85,10 +85,8 @@ public class ClientManager {
 
         this.clientSocketReadWrite.configureBlocking(true);
 
-        Future f1 = this.executorService.submit(() -> runWriterLoop());
-        Future f2 = this.executorService.submit(() -> runReaderLoop());
-
-        f1.get();
+        this.executorService.submit(() -> runWriterLoop());
+        this.executorService.submit(() -> runReaderLoop());
     }
 
     public String getClientId() {
@@ -136,6 +134,8 @@ public class ClientManager {
     }
 
     private void runWriterLoop() {
+        System.out.println("[RemoteLoggerClient] started writer loop");
+
         try {
             StringBuilder socketOutPutBuilder = new StringBuilder();
             while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
@@ -161,16 +161,17 @@ public class ClientManager {
                 }
             }
         } finally {
+            System.out.println("[RemoteLoggerClient] stopped writer loop");
             this.shutdown();
         }
     }
 
     private void runReaderLoop() {
+        System.out.println("[RemoteLoggerClient] started reader loop");
         try {
             while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
                 try {
                     Map.Entry<String, String> read = this.clientSocketReadWrite.read();
-                    ;
 
                     if (read != null) {
                         this.inputChannel.write(ByteBuffer.wrap((read.getKey() + SOCKET_KEY_VALUE_DELIMETER + read.getValue()).getBytes("UTF-8")));
@@ -180,38 +181,34 @@ public class ClientManager {
                 }
             }
         } finally {
+            System.out.println("[RemoteLoggerClient] stopped reader loop");
             this.shutdown();
         }
     }
 
     private void handshake() throws Exception {
+        this.clientSocketReadWrite.configureBlocking(false);
         this.clientSocketReadWrite.write(CLIENT_ID, clientSocketReadWrite.getId());
-        this.clientSocketReadWrite.configureBlocking(true);
 
-        final CountDownLatch latch = new CountDownLatch(1);
-        final AtomicBoolean isSucess = new AtomicBoolean(false);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Map.Entry<String, String> info = clientSocketReadWrite.read();
-                    if(info != null
-                            && HANDSHAKE_STATUS.equals(info.getKey())
-                            && SUCCESS.equals(info.getValue())) {
-                        isSucess.set(true);
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    latch.countDown();
-                }
-            }
-        }).start();
+        final long startedAt = System.currentTimeMillis();
+        Map.Entry<String, String> info = clientSocketReadWrite.read();
+        while (info == null && System.currentTimeMillis() - startedAt < 3000) {
+            info = clientSocketReadWrite.read();
+        }
 
-        latch.wait(3000);
+        if(info == null) {
+            throw new Exception("handshake timeout");
+        }
 
-        if(latch.getCount() != 0 || !isSucess.get()) {
-            throw new Exception("handshake timeout/failure");
+        boolean isSuccess = false;
+        if(info != null
+                && HANDSHAKE_STATUS.equals(info.getKey())
+                && SUCCESS.equals(info.getValue())) {
+            isSuccess = true;
+        }
+
+        if(!isSuccess) {
+            throw new Exception("handshake failure");
         }
     }
 }

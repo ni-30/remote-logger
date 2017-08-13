@@ -38,6 +38,8 @@ public class ServerApp {
             remoteLogger = RemoteLogger.getLogger(properties, args[0]);
         }
 
+        if(remoteLogger == null) return;
+
         Scanner scanner = new Scanner(System.in);
 
         while (true) {

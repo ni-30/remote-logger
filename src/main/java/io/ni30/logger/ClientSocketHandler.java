@@ -180,40 +180,25 @@ public class ClientSocketHandler {
     }
 
     private void handshake(ClientSocketReadWrite clientSocketReadWrite) throws Exception {
-        clientSocketReadWrite.configureBlocking(true);
+        clientSocketReadWrite.configureBlocking(false);
 
-        final CountDownLatch latch = new CountDownLatch(1);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Map.Entry<String, String> info = clientSocketReadWrite.read();
-                    if(info != null
-                            && CLIENT_ID.equals(info.getKey())
-                            && info.getValue() != null
-                            && info.getValue().split("_", 2).length == 2) {
+        final long startedAt = System.currentTimeMillis();
+        Map.Entry<String, String> info = clientSocketReadWrite.read();
+        while (info == null && System.currentTimeMillis() - startedAt < 3000) {
+            info = clientSocketReadWrite.read();
+        }
 
-                        clientSocketReadWrite.setId(info.getValue());
-                        clientSocketReadWrite.write(HANDSHAKE_STATUS, SUCCESS);
-                    }
-                } catch (IOException e) {
-                    try {
-                        clientSocketReadWrite.write(HANDSHAKE_STATUS, FAILED);
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
+        if(info == null) {
+            throw new Exception("handshake timeout");
+        }
 
-                    throw new RuntimeException(e);
-                } finally {
-                    latch.countDown();
-                }
-            }
-        }).start();
-
-        latch.wait(3000);
-
-        if(latch.getCount() != 0 || clientSocketReadWrite.getId() == null) {
-            throw new Exception("handshake timeout/failure");
+        if(CLIENT_ID.equals(info.getKey())
+                && info.getValue() != null
+                && info.getValue().split("_", 2).length == 2) {
+            clientSocketReadWrite.setId(info.getValue());
+            clientSocketReadWrite.write(HANDSHAKE_STATUS, SUCCESS);
+        } else {
+            clientSocketReadWrite.write(HANDSHAKE_STATUS, FAILED);
         }
     }
 }

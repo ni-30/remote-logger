@@ -21,6 +21,7 @@ public class SocketOutputWriter extends AbstractSocketOutputWriter<String, Strin
         for(int i = 0; i < sb.length(); i++) {
             byteBuffer.put((byte) sb.charAt(i));
         }
+        byteBuffer.flip();
 
         return byteBuffer;
     }

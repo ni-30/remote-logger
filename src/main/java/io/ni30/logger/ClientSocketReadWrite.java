@@ -29,14 +29,14 @@ public class ClientSocketReadWrite implements Closeable {
     }
 
     private final SocketIO socketIO;
-    private final SocketOutputWriter socketInputWriter;
-    private final SocketInputReader socketOutputReader;
+    private final SocketOutputWriter socketOutputWriter;
+    private final SocketInputReader socketInputReader;
     private String id;
 
     public ClientSocketReadWrite(SocketIO socketIO, int readBufferByteCapacity) {
         this.socketIO = socketIO;
-        this.socketInputWriter = new SocketOutputWriter(socketIO);
-        this.socketOutputReader = new SocketInputReader(socketIO, readBufferByteCapacity);
+        this.socketOutputWriter = new SocketOutputWriter(socketIO);
+        this.socketInputReader = new SocketInputReader(socketIO, readBufferByteCapacity);
     }
 
     public String getId() {
@@ -63,10 +63,11 @@ public class ClientSocketReadWrite implements Closeable {
 
     public void write(String key, String value) throws IOException {
         if(!isValidSocketIOKey(key)) return;
-        this.socketInputWriter.writeNext(key, value);
+
+        this.socketOutputWriter.writeNext(key, value);
     }
 
     public Entry<String, String> read() throws IOException {
-        return this.socketOutputReader.readNext();
+        return this.socketInputReader.readNext();
     }
 }

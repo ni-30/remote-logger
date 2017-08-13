@@ -56,10 +56,18 @@ public class ServerManager {
     }
 
     private void runAcceptor() {
-        while (!Thread.interrupted() && !serverSocketChannel.isOpen()) {
-            try {
-                SocketChannel socketChannel = serverSocketChannel.accept();
+        System.out.println("[RemoteLoggerServer] started client acceptor loop");
 
+        while (!Thread.interrupted() && serverSocketChannel.isOpen()) {
+            SocketChannel socketChannel = null;
+            try {
+                socketChannel = serverSocketChannel.accept();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            try {
+                socketChannel.finishConnect();
                 SocketIO socketIO = new SocketIO(socketChannel, outputBufferByteCapacity);
                 ClientSocketReadWrite clientSocketReadWrite = new ClientSocketReadWrite(socketIO, readBufferByteCapacity);
 
@@ -69,12 +77,15 @@ public class ServerManager {
                     this.waitForClientsToClose();
                 }
             } catch (Exception ignore) {
+                ignore.printStackTrace();
             }
         }
+
+        System.out.println("[RemoteLoggerServer] stopped client acceptor loop");
     }
 
     private void waitForClientsToClose() {
-        while (this.totalOpenClientSocket.get() > this.clientPoolSize) {
+        while (this.serverSocketChannel.isOpen() && this.totalOpenClientSocket.get() > this.clientPoolSize) {
             try {
                 this.waitObject.wait(15000);
             } catch (InterruptedException ignore) {

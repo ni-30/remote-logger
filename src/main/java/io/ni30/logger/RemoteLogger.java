@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+
 import static io.ni30.logger.Constants.*;
 
 /**
@@ -26,17 +28,17 @@ public class RemoteLogger implements Closeable {
 
         String clientId = properties.getProperty(GROUP_NAME, ANONYMOUS) + "_" + UUID.randomUUID().toString();
         properties.setProperty(CLIENT_ID, clientId);
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+
         ClientManager clientManager = ClientManager.getOrCreate(properties);
-
         final RemoteLogger newLogger = new RemoteLogger(channelName, clientManager);
-        Thread thread = new Thread(() -> newLogger.run());
-
-        thread.start();
+        newLogger.run();
 
         RemoteLogger currLogger = loggers.compute(loggerName, (k,v) -> (v == null || v == prevLogger) ? newLogger : v);
 
         if(currLogger != newLogger) {
-            thread.interrupt();
+            newLogger.close();
         }
 
         return currLogger;
@@ -99,9 +101,8 @@ public class RemoteLogger implements Closeable {
         try {
             this.clientManager.run();
         } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
             this.close();
+            e.printStackTrace();
         }
     }
 

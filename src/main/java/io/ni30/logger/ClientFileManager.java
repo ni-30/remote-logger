@@ -56,7 +56,7 @@ public class ClientFileManager {
             file.createNewFile();
         }
 
-        return new RandomAccessFile(file, "w");
+        return new RandomAccessFile(file, "rwd");
     }
 
     public RandomAccessFile getReadableClientLogFile(String clientId) throws IOException {
@@ -76,7 +76,7 @@ public class ClientFileManager {
             file.createNewFile();
         }
 
-        return new RandomAccessFile(file, "w");
+        return new RandomAccessFile(file, "rwd");
     }
 
     public RandomAccessFile getReadableServerLogFile(String clientId) throws IOException {
