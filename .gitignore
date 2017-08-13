@@ -19,7 +19,7 @@ local.properties
 .loadpath
 .idea/
 dependency-reduced-pom.xml
-target/
+
 # External tool builders
 .externalToolBuilders/
 
