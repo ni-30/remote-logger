@@ -35,7 +35,7 @@ public class ServerApp {
             Properties properties = new Properties();
             properties.load(is);
 
-            remoteLogger = RemoteLogger.getLogger(properties, args[0]);
+            remoteLogger = RemoteLogger.getLogger(properties, "testChannel");
         }
 
         if(remoteLogger == null) return;

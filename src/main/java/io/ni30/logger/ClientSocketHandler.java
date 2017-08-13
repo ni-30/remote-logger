@@ -58,6 +58,8 @@ public class ClientSocketHandler {
 
         this.executorService.submit(()-> runWriter(clientSocketReadWrite, clientFileManager));
         this.executorService.submit(()-> runReader(clientSocketReadWrite, clientFileManager));
+
+        System.out.println("[RemoteLoggerServer] connected new client - " + clientSocketReadWrite.getId());
     }
 
     private void runWriter(ClientSocketReadWrite clientSocketReadWrite, ClientFileManager clientFileManager) {

@@ -19,7 +19,7 @@ public class ClientManager {
         if(INSTANCE == null) {
             synchronized (ClientManager.class) {
                 if(INSTANCE == null) {
-                    String groupName = properties.getProperty(GROUP_NAME, ANONYMOUS);
+                    String groupName = properties.getProperty(GROUP_NAME, ANONYMOUS).trim();
                     ClientFileManager clientFileManager = new ClientFileManager(groupName);
                     INSTANCE = new ClientManager(properties, clientFileManager);
                 }
@@ -149,7 +149,7 @@ public class ClientManager {
                         if (b == '\n') {
                             if (socketOutPutBuilder.length() != 0) {
                                 String[] arr = socketOutPutBuilder.toString().split(SOCKET_KEY_VALUE_DELIMETER, 2);
-                                clientSocketReadWrite.write(arr[0], arr.length == 2 ? arr[0] : "null");
+                                clientSocketReadWrite.write(arr[0], arr.length == 2 ? arr[1] : "null");
                             }
                             socketOutPutBuilder = new StringBuilder();
                         } else {

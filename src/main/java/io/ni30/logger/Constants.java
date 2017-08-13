@@ -15,12 +15,12 @@ public class Constants {
             CLIENT_POOL_SIZE = "clientPoolSize",
             GROUP_NAME = "groupName",
             CLIENT_ID = "clientId",
-            ANONYMOUS = "Anonymous",
+            ANONYMOUS = "anonymous",
             HANDSHAKE_STATUS = "handshakeStatus",
             SUCCESS = "success",
             FAILED = "failed";
 
-    public static final String SOCKET_KEY_VALUE_DELIMETER = "\\t";
+    public static final String SOCKET_KEY_VALUE_DELIMETER = ":";
 
 
 
