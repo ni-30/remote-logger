@@ -7,9 +7,9 @@ import static io.ni30.logger.Constants.SOCKET_KEY_VALUE_DELIMETER;
 /**
  * Created by nitish.aryan on 12/08/17.
  */
-public class SocketInputWriter extends AbstractSocketInputWriter<String, String> {
+public class SocketOutputWriter extends AbstractSocketOutputWriter<String, String> {
 
-    public SocketInputWriter(SocketIO socketIO) {
+    public SocketOutputWriter(SocketIO socketIO) {
         super(socketIO);
     }
 

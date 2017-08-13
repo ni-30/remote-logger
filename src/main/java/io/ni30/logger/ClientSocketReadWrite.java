@@ -29,14 +29,14 @@ public class ClientSocketReadWrite implements Closeable {
     }
 
     private final SocketIO socketIO;
-    private final SocketInputWriter socketInputWriter;
-    private final SocketOutputReader socketOutputReader;
+    private final SocketOutputWriter socketInputWriter;
+    private final SocketInputReader socketOutputReader;
     private String id;
 
     public ClientSocketReadWrite(SocketIO socketIO, int readBufferByteCapacity) {
         this.socketIO = socketIO;
-        this.socketInputWriter = new SocketInputWriter(socketIO);
-        this.socketOutputReader = new SocketOutputReader(socketIO, readBufferByteCapacity);
+        this.socketInputWriter = new SocketOutputWriter(socketIO);
+        this.socketOutputReader = new SocketInputReader(socketIO, readBufferByteCapacity);
     }
 
     public String getId() {

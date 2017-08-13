@@ -6,10 +6,10 @@ import java.nio.ByteBuffer;
 /**
  * Created by nitish.aryan on 12/08/17.
  */
-public abstract class AbstractSocketInputWriter<K, V> {
+public abstract class AbstractSocketOutputWriter<K, V> {
     private final SocketIO socketIO;
 
-    public AbstractSocketInputWriter(SocketIO socketIO) {
+    public AbstractSocketOutputWriter(SocketIO socketIO) {
         this.socketIO = socketIO;
     }
 

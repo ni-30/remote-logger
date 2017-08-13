@@ -13,18 +13,13 @@ import static io.ni30.logger.Utility.isValidSocketIOKey;
 /**
  * Created by nitish.aryan on 12/08/17.
  */
-public class SocketOutputReader extends AbstractSocketOutputReader<String, String> {
+public class SocketInputReader extends AbstractSocketInputReader<String, String> {
     private final ByteBuffer readByteBuffer;
     private final Queue<Map.Entry<String, String>> outputQueue = new LinkedList<>();
 
-    public SocketOutputReader(SocketIO socketIO, int readBufferByteCapacity) {
+    public SocketInputReader(SocketIO socketIO, int readBufferByteCapacity) {
         super(socketIO);
         this.readByteBuffer = ByteBuffer.allocate(readBufferByteCapacity);
-    }
-
-    @Override
-    public synchronized Map.Entry<String, String> readNext() throws IOException {
-        return super.readNext();
     }
 
     protected Map.Entry<String, String> convertFromByteBuffer(ByteBuffer outputBuffer) {
