@@ -17,6 +17,13 @@ Remote Logger
 ### Log using RemoteLogger created instance
     logger.log("Send this log to the server");
 
+### Run test-client
+    //  using properties file in jar
+    java -jar remote-logger.jar test-client <properties file name>
+    
+    //  using properties file in working directory
+    java -jar remote-logger.jar test-client <properties file name>
+
 
 # Running Server
 ### Remote-Logger Server Properties
@@ -25,9 +32,10 @@ Remote Logger
     socketOutputBufferCapacity=4096
     readBufferCapacity=1024
     clientPoolSize=4
+    groupName=dummy
 
-### Using remoteLoggerServer.properties file in jar
+### Start server using remoteLoggerServer.properties file in jar
     java -jar remote-logger.jar server
     
-### Using properties file in working directory
+### Start server using properties file in working directory
     java -jar remote-logger.jar server <properties file name>
