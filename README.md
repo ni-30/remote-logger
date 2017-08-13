@@ -2,7 +2,7 @@ Remote Logger
 ==============
 
 
-# Running Client
+## Running Client
 ### Remote-Logger Client Properties
     readBufferCapacity=1024
     serverHost=127.0.0.1
@@ -25,7 +25,7 @@ Remote Logger
     java -jar remote-logger.jar test-client <properties file name>
 
 
-# Running Server
+## Running Server
 ### Remote-Logger Server Properties
     serverHost=127.0.0.1
     serverPort=8333
