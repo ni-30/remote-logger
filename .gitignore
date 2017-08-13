@@ -17,6 +17,8 @@ local.properties
 .classpath
 .settings/
 .loadpath
+.idea/
+dependency-reduced-pom.xml
 
 # External tool builders
 .externalToolBuilders/
