@@ -17,23 +17,14 @@ import static io.ni30.logger.Constants.*;
  * Created by nitish.aryan on 12/08/17.
  */
 public class ClientSocketHandler {
-    private static final String LOGS_DIR = "logs";
-    private static final String TEMP_DIR = "temp";
-
-    private static String inputFilePathSuffix;
-    private static String outputFilePathSuffix;
-
-    static {
-        String time = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss").format(new Date());
-        inputFilePathSuffix = "_" + time + "_client.log";
-        outputFilePathSuffix = "_" + time + "_server.log";
-    }
 
     private final ExecutorService executorService;
     private final AtomicInteger totalOpenClientSocket;
-    private final Set<ClientSocketReadWrite> clientSocketReadWrites = Collections.newSetFromMap(new ConcurrentHashMap<ClientSocketReadWrite, Boolean>());;
+    private final Set<ClientSocketReadWrite> clientSocketReadWrites = Collections.newSetFromMap(new ConcurrentHashMap<ClientSocketReadWrite, Boolean>());
+    private final String dir;
 
-    public ClientSocketHandler(int clientPoolSize, AtomicInteger totalOpenClientSocket) {
+    public ClientSocketHandler(int clientPoolSize, AtomicInteger totalOpenClientSocket, String dir) {
+        this.dir = dir;
         this.executorService = Executors.newFixedThreadPool(clientPoolSize * 2);
         this.totalOpenClientSocket = totalOpenClientSocket;
     }
@@ -54,7 +45,7 @@ public class ClientSocketHandler {
 
         clientSocketReadWrite.configureBlocking(true);
 
-        final ClientFileManager clientFileManager = new ClientFileManager(clientSocketReadWrite.getId().split("_")[0]);
+        final ClientFileManager clientFileManager = new ClientFileManager(clientSocketReadWrite.getId().split("_")[0], dir);
 
         this.executorService.submit(()-> runWriter(clientSocketReadWrite, clientFileManager));
         this.executorService.submit(()-> runReader(clientSocketReadWrite, clientFileManager));

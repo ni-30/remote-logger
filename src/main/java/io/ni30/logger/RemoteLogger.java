@@ -29,8 +29,6 @@ public class RemoteLogger implements Closeable {
         String clientId = properties.getProperty(GROUP_NAME, ANONYMOUS) + "_" + UUID.randomUUID().toString();
         properties.setProperty(CLIENT_ID, clientId);
 
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-
         ClientManager clientManager = ClientManager.getOrCreate(properties);
         final RemoteLogger newLogger = new RemoteLogger(channelName, clientManager);
         newLogger.run();

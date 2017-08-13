@@ -33,7 +33,8 @@ public class ServerManager {
         this.readBufferByteCapacity = Integer.parseInt(properties.getProperty(READ_BUFFER_CAPACITY, "1024"));
         this.clientPoolSize = Integer.parseInt(properties.getProperty(CLIENT_POOL_SIZE, (2 * Runtime.getRuntime().availableProcessors())+""));
 
-        this.clientSocketHandler = new ClientSocketHandler(this.clientPoolSize, totalOpenClientSocket);
+        String dir = properties.getProperty(PARENT_DIR, "logs").trim();
+        this.clientSocketHandler = new ClientSocketHandler(this.clientPoolSize, totalOpenClientSocket, dir);
     }
 
     public void run() throws Exception {

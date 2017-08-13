@@ -14,6 +14,7 @@ public class Constants {
             CONNECTION_TIMEOUT = "connectionTimeout",
             CLIENT_POOL_SIZE = "clientPoolSize",
             GROUP_NAME = "groupName",
+            PARENT_DIR = "parentDir",
             CLIENT_ID = "clientId",
             ANONYMOUS = "anonymous",
             HANDSHAKE_STATUS = "handshakeStatus",

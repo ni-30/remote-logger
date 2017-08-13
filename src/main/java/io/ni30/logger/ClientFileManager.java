@@ -11,7 +11,6 @@ import java.util.Date;
  */
 
 public class ClientFileManager {
-    private static final String LOGS_DIR_NAME = "logs";
     private static Date startTime;
     private static String dateDirectoryName;
 
@@ -23,14 +22,14 @@ public class ClientFileManager {
     private String clientLogDirectoryPath = null;
     private String serverLogDirectoryPath = null;
 
-    public ClientFileManager(String groupName) {
+    public ClientFileManager(String groupName, String parentDir) {
         synchronized (ClientFileManager.class) {
             if(clientLogDirectoryPath == null) {
-                this.clientLogDirectoryPath = LOGS_DIR_NAME + "/" + groupName + "/client/" + dateDirectoryName;
+                this.clientLogDirectoryPath = parentDir + "/" + groupName + "/client/" + dateDirectoryName;
             }
 
             if(serverLogDirectoryPath == null) {
-                this.serverLogDirectoryPath = LOGS_DIR_NAME + "/" + groupName + "/server/" + dateDirectoryName;
+                this.serverLogDirectoryPath = parentDir + "/" + groupName + "/server/" + dateDirectoryName;
             }
 
             File file1 = new File(clientLogDirectoryPath);

@@ -20,7 +20,8 @@ public class ClientManager {
             synchronized (ClientManager.class) {
                 if(INSTANCE == null) {
                     String groupName = properties.getProperty(GROUP_NAME, ANONYMOUS).trim();
-                    ClientFileManager clientFileManager = new ClientFileManager(groupName);
+                    String dir = properties.getProperty(PARENT_DIR, "logs").trim();
+                    ClientFileManager clientFileManager = new ClientFileManager(groupName, dir);
                     INSTANCE = new ClientManager(properties, clientFileManager);
                 }
             }
