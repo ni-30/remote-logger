@@ -9,6 +9,7 @@ Remote Logger
     serverPort=8333
     socketOutputBufferCapacity=4096
     connectionTimeout=10000
+    parentDir=tmp/logs
     
 ### Create RemoteLogger.class instance
     String channelName = "dummyChannel";
@@ -33,6 +34,7 @@ Remote Logger
     readBufferCapacity=1024
     clientPoolSize=4
     groupName=dummy
+    parentDir=logs
 
 ### Start server using remoteLoggerServer.properties file in jar
     java -jar remote-logger.jar server
