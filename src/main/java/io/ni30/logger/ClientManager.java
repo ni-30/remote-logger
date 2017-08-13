@@ -5,10 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static io.ni30.logger.Constants.*;
 
@@ -32,7 +29,7 @@ public class ClientManager {
         return INSTANCE;
     }
 
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private final ClientSocketReadWrite clientSocketReadWrite;
     private final ClientFileManager clientFileManager;
     private boolean isShutdown = false;
@@ -88,8 +85,10 @@ public class ClientManager {
 
         this.clientSocketReadWrite.configureBlocking(true);
 
-        Future f = this.executorService.submit(() -> runLoop());
-        f.get();
+        Future f1 = this.executorService.submit(() -> runWriterLoop());
+        Future f2 = this.executorService.submit(() -> runReaderLoop());
+
+        f1.get();
     }
 
     public String getClientId() {
@@ -100,7 +99,11 @@ public class ClientManager {
         return this.isShutdown;
     }
 
-    public void shutdown() {
+    public synchronized void shutdown() {
+        if(isShutdown == true) {
+            return;
+        }
+
         try {
             this.executorService.shutdown();
             isShutdown = true;
@@ -132,35 +135,52 @@ public class ClientManager {
         }
     }
 
-    private void runLoop() {
-        StringBuilder socketOutPutBuilder = new StringBuilder();
-        while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
-            try {
-                Map.Entry<String, String> read = this.clientSocketReadWrite.read();;
+    private void runWriterLoop() {
+        try {
+            StringBuilder socketOutPutBuilder = new StringBuilder();
+            while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
+                try {
+                    ByteBuffer buffer = ByteBuffer.allocate(2048);
+                    this.outputChannel.read(buffer);
+                    buffer.flip();
 
-                if(read != null) {
-                    this.inputChannel.write(ByteBuffer.wrap((read.getKey() + SOCKET_KEY_VALUE_DELIMETER + read.getValue()).getBytes("UTF-8")));
-                }
-
-                ByteBuffer buffer = ByteBuffer.allocate(2048);
-                this.outputChannel.read(buffer);
-                buffer.flip();
-
-                while (buffer.hasRemaining()) {
-                    byte b = buffer.get();
-                    if(b == '\n') {
-                        if(socketOutPutBuilder.length() != 0) {
-                            String[] arr = socketOutPutBuilder.toString().split(SOCKET_KEY_VALUE_DELIMETER, 2);
-                            clientSocketReadWrite.write(arr[0], arr.length == 2 ? arr[0] : "null");
+                    while (buffer.hasRemaining()) {
+                        byte b = buffer.get();
+                        if (b == '\n') {
+                            if (socketOutPutBuilder.length() != 0) {
+                                String[] arr = socketOutPutBuilder.toString().split(SOCKET_KEY_VALUE_DELIMETER, 2);
+                                clientSocketReadWrite.write(arr[0], arr.length == 2 ? arr[0] : "null");
+                            }
+                            socketOutPutBuilder = new StringBuilder();
+                        } else {
+                            socketOutPutBuilder.append((char) b);
                         }
-                        socketOutPutBuilder = new StringBuilder();
-                    } else {
-                        socketOutPutBuilder.append((char) b);
                     }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
+        } finally {
+            this.shutdown();
+        }
+    }
+
+    private void runReaderLoop() {
+        try {
+            while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
+                try {
+                    Map.Entry<String, String> read = this.clientSocketReadWrite.read();
+                    ;
+
+                    if (read != null) {
+                        this.inputChannel.write(ByteBuffer.wrap((read.getKey() + SOCKET_KEY_VALUE_DELIMETER + read.getValue()).getBytes("UTF-8")));
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        } finally {
+            this.shutdown();
         }
     }
 
