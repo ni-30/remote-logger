@@ -20,7 +20,7 @@ Remote Logger
 
 ### Run test-client
     //  using properties file in jar
-    java -jar remote-logger.jar test-client <properties file name>
+    java -jar remote-logger.jar test-client
     
     //  using properties file in working directory
     java -jar remote-logger.jar test-client <properties file name>
