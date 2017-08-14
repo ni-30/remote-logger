@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.ni30.logger.Constants.*;
@@ -47,128 +48,139 @@ public class ClientSocketHandler {
 
         final ClientFileManager clientFileManager = new ClientFileManager(clientSocketReadWrite.getId().split("_")[0], dir);
 
-        this.executorService.submit(()-> runWriter(clientSocketReadWrite, clientFileManager));
-        this.executorService.submit(()-> runReader(clientSocketReadWrite, clientFileManager));
+        final AtomicBoolean isWriterRunning = new AtomicBoolean(true);
+        final AtomicBoolean isReaderRunning = new AtomicBoolean(true);
+
+        this.executorService.submit(()-> runWriter(clientSocketReadWrite, clientFileManager, isWriterRunning, isReaderRunning));
+        this.executorService.submit(()-> runReader(clientSocketReadWrite, clientFileManager, isWriterRunning, isReaderRunning));
 
         System.out.println("[RemoteLoggerServer] connected new client - " + clientSocketReadWrite.getId());
     }
 
-    private void runWriter(ClientSocketReadWrite clientSocketReadWrite, ClientFileManager clientFileManager) {
+    private void runWriter(ClientSocketReadWrite clientSocketReadWrite, ClientFileManager clientFileManager, AtomicBoolean isWriterRunning, AtomicBoolean isReaderRunning) {
         RandomAccessFile clientFile = null;
         FileChannel clientChannel = null;
 
-        this.clientSocketReadWrites.add(clientSocketReadWrite);
-        this.totalOpenClientSocket.set(this.clientSocketReadWrites.size());
-
         try {
-            clientFile = clientFileManager.getReadableServerLogFile(clientSocketReadWrite.getId());
-            clientChannel = clientFile.getChannel();
+            this.clientSocketReadWrites.add(clientSocketReadWrite);
+            this.totalOpenClientSocket.set(this.clientSocketReadWrites.size());
 
-            StringBuilder sb = new StringBuilder();
-            while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
-                ByteBuffer buffer = ByteBuffer.allocate(512);
-                clientChannel.read(buffer);
-                buffer.flip();
+            try {
+                clientFile = clientFileManager.getReadableServerLogFile(clientSocketReadWrite.getId());
+                clientChannel = clientFile.getChannel();
 
-                while (buffer.hasRemaining()) {
-                    char c = (char) buffer.get();
-                    if (c == '\n') {
-                        if (sb.length() != 0) {
-                            String[] arr = sb.toString().split(String.valueOf(SOCKET_KEY_VALUE_DELIMETER), 2);
-                            clientSocketReadWrite.write(arr[0], arr.length == 2 ? arr[1] : "null");
+                StringBuilder sb = new StringBuilder();
+                while (!Thread.interrupted() && !clientSocketReadWrite.isClosed() && isReaderRunning.get()) {
+                    ByteBuffer buffer = ByteBuffer.allocate(512);
+                    clientChannel.read(buffer);
+                    buffer.flip();
+
+                    while (buffer.hasRemaining()) {
+                        char c = (char) buffer.get();
+                        if (c == '\n') {
+                            if (sb.length() != 0) {
+                                String[] arr = sb.toString().split(String.valueOf(SOCKET_KEY_VALUE_DELIMETER), 2);
+                                clientSocketReadWrite.write(arr[0], arr.length == 2 ? arr[1] : "null");
+                            }
+                            sb = new StringBuilder();
+                        } else {
+                            sb.append(c);
                         }
-                        sb = new StringBuilder();
-                    } else {
-                        sb.append(c);
                     }
                 }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (!clientSocketReadWrite.isClosed()) {
+                    try {
+                        clientSocketReadWrite.close();
+                    } catch (Exception ignore) {
+                    }
+                }
+
+                if (clientFile != null) {
+                    try {
+                        clientFile.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if (clientChannel != null) {
+                    try {
+                        clientChannel.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                this.clientSocketReadWrites.remove(clientSocketReadWrite);
+                this.totalOpenClientSocket.set(this.clientSocketReadWrites.size());
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         } finally {
-            if(!clientSocketReadWrite.isClosed()) {
-                try {
-                    clientSocketReadWrite.close();
-                } catch (Exception ignore) {
-                }
-            }
-
-            if(clientFile != null) {
-                try {
-                    clientFile.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if(clientChannel != null) {
-                try {
-                    clientChannel.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            this.clientSocketReadWrites.remove(clientSocketReadWrite);
-            this.totalOpenClientSocket.set(this.clientSocketReadWrites.size());
+            isWriterRunning.compareAndSet(true, false);
         }
     }
 
-    private void runReader(ClientSocketReadWrite clientSocketReadWrite, ClientFileManager clientFileManager) {
+    private void runReader(ClientSocketReadWrite clientSocketReadWrite, ClientFileManager clientFileManager, AtomicBoolean isWriterRunning, AtomicBoolean isReaderRunning) {
         RandomAccessFile clientFile = null;
         FileChannel clientChannel = null;
 
-        this.clientSocketReadWrites.add(clientSocketReadWrite);
-        this.totalOpenClientSocket.set(this.clientSocketReadWrites.size());
-
         try {
-            clientFile = clientFileManager.getWritableClientLogFile(clientSocketReadWrite.getId());
-            clientChannel = clientFile.getChannel();
+            this.clientSocketReadWrites.add(clientSocketReadWrite);
+            this.totalOpenClientSocket.set(this.clientSocketReadWrites.size());
 
-            while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
-                Map.Entry<String, String> out = clientSocketReadWrite.read();
+            try {
+                clientFile = clientFileManager.getWritableClientLogFile(clientSocketReadWrite.getId());
+                clientChannel = clientFile.getChannel();
 
-                if(out == null) {
-                    continue;
+                while (!Thread.interrupted() && !clientSocketReadWrite.isClosed() && isWriterRunning.get()) {
+                    Map.Entry<String, String> out = clientSocketReadWrite.read();
+
+                    if (out == null) {
+                        continue;
+                    }
+
+                    StringBuilder sb = new StringBuilder()
+                            .append(out.getKey())
+                            .append(SOCKET_KEY_VALUE_DELIMETER)
+                            .append(out.getValue())
+                            .append("\n");
+
+                    ByteBuffer buffer = ByteBuffer.wrap(sb.toString().getBytes("UTF-8"));
+                    clientChannel.write(buffer);
                 }
-
-                StringBuilder sb = new StringBuilder()
-                        .append(out.getKey())
-                        .append(SOCKET_KEY_VALUE_DELIMETER)
-                        .append(out.getValue())
-                        .append("\n");
-
-                ByteBuffer buffer = ByteBuffer.wrap(sb.toString().getBytes("UTF-8"));
-                clientChannel.write(buffer);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if(clientFile != null) {
-                try {
-                    clientFile.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    if(clientChannel != null) {
-                        try {
-                            clientChannel.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (clientFile != null) {
+                    try {
+                        clientFile.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        if (clientChannel != null) {
+                            try {
+                                clientChannel.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }
-            }
 
-            if (!clientSocketReadWrite.isClosed() && !clientSocketReadWrite.isClosed()) {
-                try {
-                    clientSocketReadWrite.close();
-                } catch (Exception ignore) {
+                if (!clientSocketReadWrite.isClosed() && !clientSocketReadWrite.isClosed()) {
+                    try {
+                        clientSocketReadWrite.close();
+                    } catch (Exception ignore) {
+                    }
                 }
-            }
 
-            this.clientSocketReadWrites.remove(clientSocketReadWrite);
-            this.totalOpenClientSocket.set(this.clientSocketReadWrites.size());
+                this.clientSocketReadWrites.remove(clientSocketReadWrite);
+                this.totalOpenClientSocket.set(this.clientSocketReadWrites.size());
+            }
+        } finally {
+            isReaderRunning.compareAndSet(true, false);
         }
     }
 

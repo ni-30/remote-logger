@@ -39,6 +39,8 @@ public class ClientManager {
     private FileChannel inputChannel;
     private RandomAccessFile outputFile;
     private FileChannel outputChannel;
+    private final AtomicBoolean isWriterRunning = new AtomicBoolean(true);
+    private final AtomicBoolean isReaderRunning = new AtomicBoolean(true);
 
     public ClientManager(Properties properties, ClientFileManager clientFileManager) {
         this.clientFileManager = clientFileManager;
@@ -136,10 +138,9 @@ public class ClientManager {
 
     private void runWriterLoop() {
         System.out.println("[RemoteLoggerClient] started writer loop");
-
         try {
             StringBuilder socketOutPutBuilder = new StringBuilder();
-            while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
+            while (!Thread.interrupted() && !clientSocketReadWrite.isClosed() && isReaderRunning.get()) {
                 try {
                     ByteBuffer buffer = ByteBuffer.allocate(2048);
                     this.outputChannel.read(buffer);
@@ -162,15 +163,16 @@ public class ClientManager {
                 }
             }
         } finally {
+            isWriterRunning.compareAndSet(true, false);
             System.out.println("[RemoteLoggerClient] stopped writer loop");
-            this.shutdown();
         }
     }
 
     private void runReaderLoop() {
         System.out.println("[RemoteLoggerClient] started reader loop");
+
         try {
-            while (!Thread.interrupted() && !clientSocketReadWrite.isClosed()) {
+            while (!Thread.interrupted() && !clientSocketReadWrite.isClosed() && isWriterRunning.get()) {
                 try {
                     Map.Entry<String, String> read = this.clientSocketReadWrite.read();
 
@@ -182,8 +184,8 @@ public class ClientManager {
                 }
             }
         } finally {
+            isReaderRunning.compareAndSet(true, false);
             System.out.println("[RemoteLoggerClient] stopped reader loop");
-            this.shutdown();
         }
     }
 
